@@ -1,0 +1,1223 @@
+<html><head><base href="https://example.com/"><title>Board Game Designer - Interactive Menus and Piece Management</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#sidebar {
+    width: 250px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+#game-area {
+    flex-grow: 1;
+    background-color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
+
+#game-board {
+    width: 2000px;
+    height: 2000px;
+    background-color: #fff;
+    border: 2px solid #333;
+    position: absolute;
+    transform-origin: center;
+    cursor: grab;
+}
+
+#game-board:active {
+    cursor: grabbing;
+}
+
+.menu-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.menu-button:hover {
+    background-color: #e8e8e8;
+}
+
+select, input[type="number"] {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+}
+
+.piece {
+    width: 50px;
+    height: 50px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: pointer;
+    display: inline-block;
+    margin: 5px;
+    position: relative;
+}
+
+.piece .delete-piece {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.piece:hover .delete-piece {
+    opacity: 1;
+}
+
+.board-piece {
+    position: absolute;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: move;
+}
+
+.board-piece.fixed {
+    cursor: default;
+    z-index: 1;
+}
+
+.board-piece.selected {
+    outline: 2px solid #4CAF50;
+}
+
+#status-indicator {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+.custom-menu {
+    position: absolute;
+    background-color: white;
+    padding: 10px;
+    border: 1px solid black;
+    display: none;
+    min-width: 200px;
+    min-height: 100px;
+    overflow-y: auto;
+    max-height: 300px;
+    z-index: 1000;
+}
+
+#shortcuts-list {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+
+#context-menu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 1000;
+}
+
+#context-menu button {
+    display: block;
+    width: 100%;
+    padding: 5px 10px;
+    text-align: left;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+#context-menu button:hover {
+    background-color: #f0f0f0;
+}
+
+#save-load-area {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+}
+
+#game-code {
+    width: 100%;
+    height: 100px;
+    margin-top: 10px;
+    resize: vertical;
+}
+
+#change-background-modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.piece-number {
+    position: absolute;
+    background-color: white;
+    padding: 2px 5px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.dice {
+    width: 50px;
+    height: 50px;
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="sidebar">
+    <button class="menu-button" onclick="showChangeBoardBackgroundModal()">Cambiar Fondo</button>
+    <button class="menu-button" onclick="createMenu()">Crear Menú</button>
+    <button class="menu-button" onclick="deleteMenu()">Eliminar Menú</button>
+    <button class="menu-button" onclick="uploadPieceByDropboxURL()">Subir Ficha por URL Dropbox</button>
+    <select id="menu-selector">
+        <option value="">Seleccionar Menú</option>
+    </select>
+    <input type="number" id="piece-size" placeholder="Tamaño de Ficha" min="1" value="150">
+    <button class="menu-button" onclick="closeMenu()">Cerrar Menú</button>
+    <button class="menu-button" id="reset-button" onclick="resetGame()">Resetear Juego</button>
+    <div id="shortcuts-list">
+        <h3>Atajos de Teclado:</h3>
+        <ul id="shortcut-keys"></ul>
+        <p><strong>DEL:</strong> Eliminar fichas seleccionadas</p>
+    </div>
+    <div id="save-load-area">
+        <h3>Guardar/Cargar Partida</h3>
+        <button class="menu-button" onclick="saveGameToCode()">Guardar Partida</button>
+        <button class="menu-button" onclick="loadGameFromCode()">Cargar Partida</button>
+        <textarea id="game-code" placeholder="Pegue aquí el código de la partida guardada"></textarea>
+    </div>
+</div>
+<div id="game-area">
+    <div id="game-board"></div>
+</div>
+<div id="status-indicator">Online</div>
+
+<div id="context-menu">
+    <button onclick="fixPiece()">Fijar/Desfijar Fichas</button>
+    <button onclick="eliminatePiece()">Eliminar Fichas</button>
+    <button onclick="changeNumberOfPieces()">Añadir/Cambiar Número</button>
+    <button onclick="removeNumber()">Quitar Número</button>
+    <button onclick="changeNumberPosition()">Cambiar Posición del Número</button>
+    <button onclick="flipCardIfPossible()">Girar Carta</button>
+    <button onclick="shuffleDeckIfPossible()">Mezclar Mazo</button>
+</div>
+
+<div id="change-background-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Cambiar Fondo del Tablero</h2>
+        <p>Elija una opción:</p>
+        <button onclick="changeBoardBackgroundColor()">Cambiar Color</button>
+        <button onclick="changeBoardBackgroundImage()">Cambiar Imagen</button>
+        <div>
+            <label for="board-width">Ancho del tablero (px):</label>
+            <input type="number" id="board-width" min="1000" max="10000" value="2000">
+        </div>
+        <div>
+            <label for="board-height">Alto del tablero (px):</label>
+            <input type="number" id="board-height" min="1000" max="10000" value="2000">
+        </div>
+        <button onclick="changeBoardDimensions()">Cambiar Dimensiones</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.11/interact.min.js"></script>
+<script>
+let menus = [];
+let menuShortcuts = {};
+let boardPieces = [];
+let selectedPiece = null;
+let zIndexCounter = 10;
+let boardScale = 1;
+let isDragging = false;
+let startX, startY, startBoardX, startBoardY;
+
+const gameBoard = document.getElementById('game-board');
+const gameArea = document.getElementById('game-area');
+
+function updateMenuSelector() {
+    const menuSelector = document.getElementById('menu-selector');
+    menuSelector.innerHTML = '<option value="">Seleccionar Menú</option>';
+    menus.forEach((menu, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = menu.querySelector('h3').textContent;
+        menuSelector.appendChild(option);
+    });
+}
+
+function showChangeBoardBackgroundModal() {
+    document.getElementById('change-background-modal').style.display = 'block';
+    document.getElementById('board-width').value = parseInt(gameBoard.style.width) || 2000;
+    document.getElementById('board-height').value = parseInt(gameBoard.style.height) || 2000;
+}
+
+function changeBoardDimensions() {
+    const width = document.getElementById('board-width').value;
+    const height = document.getElementById('board-height').value;
+    gameBoard.style.width = `${width}px`;
+    gameBoard.style.height = `${height}px`;
+    document.getElementById('change-background-modal').style.display = 'none';
+}
+
+function changeBoardBackgroundColor() {
+    const color = prompt("Ingrese el color de fondo (nombre del color o código hexadecimal):");
+    if (color) {
+        gameBoard.style.backgroundImage = 'none';
+        gameBoard.style.backgroundColor = color;
+        changeBoardDimensions();
+    }
+    document.getElementById('change-background-modal').style.display = 'none';
+}
+
+function changeBoardBackgroundImage() {
+    const url = prompt("Ingrese la URL de la imagen de fondo:");
+    if (url) {
+        gameBoard.style.backgroundColor = 'transparent';
+        gameBoard.style.backgroundImage = `url(${url})`;
+        gameBoard.style.backgroundSize = 'cover';
+        changeBoardDimensions();
+    }
+    document.getElementById('change-background-modal').style.display = 'none';
+}
+
+function toggleMenu(shortcutKey) {
+    const menu = menuShortcuts[shortcutKey.toLowerCase()];
+    if (menu) {
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    }
+}
+
+function createMenu() {
+    const menuName = prompt("Ingrese el nombre del menú:");
+    if (menuName) {
+        const menuType = prompt("Tipo de menú (normal/cartas/dados):").toLowerCase();
+        if (menuType === "normal" || menuType === "cartas" || menuType === "dados") {
+            const shortcutKey = prompt("Asigne una tecla para abrir/cerrar este menú (una sola letra):");
+            if (shortcutKey && shortcutKey.length === 1) {
+                if (menuType === "dados") {
+                    createDiceMenu(menuName, shortcutKey);
+                } else {
+                    const menu = document.createElement('div');
+                    menu.className = 'custom-menu';
+                    menu.id = 'menu-' + Date.now();
+                    
+                    let menuContent = `
+                        <h3>${menuName}</h3>
+                        <div class="menu-content"></div>
+                        <button onclick="toggleMenu('${shortcutKey}')">Cerrar</button>
+                    `;
+                    
+                    if (menuType === "cartas") {
+                        menuContent += `
+                            <button onclick="updateCardBackside(this)">Reverso de las cartas</button>
+                            <button onclick="toggleAllCards(this)">Mostrar todas boca abajo</button>
+                        `;
+                    }
+                    
+                    menu.innerHTML = menuContent;
+                    menu.setAttribute('data-menu-type', menuType);
+                    if (menuType === "cartas") {
+                        menu.setAttribute('data-backside-url', '');
+                        menu.setAttribute('data-cards-face-down', 'false');
+                    }
+                    menu.style.top = '50px';
+                    menu.style.left = '50px';
+                    document.getElementById('game-area').appendChild(menu);
+                    menus.push(menu);
+                    
+                    menuShortcuts[shortcutKey.toLowerCase()] = menu;
+                    updateShortcutsList();
+                    updateMenuSelector();
+                    
+                    interact(menu).draggable({
+                        listeners: {
+                            move(event) {
+                                const target = event.target;
+                                const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                                const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                                target.style.transform = `translate(${x}px, ${y}px)`;
+                                target.setAttribute('data-x', x);
+                                target.setAttribute('data-y', y);
+                            }
+                        }
+                    });
+                }
+            } else {
+                alert("Por favor, asigne una sola letra como tecla de atajo.");
+            }
+        } else {
+            alert("Tipo de menú no válido. Por favor, elija 'normal', 'cartas' o 'dados'.");
+        }
+    }
+}
+
+function createDiceMenu(menuName, shortcutKey) {
+    const menu = document.createElement('div');
+    menu.className = 'custom-menu';
+    menu.id = 'menu-' + Date.now();
+    
+    menu.innerHTML = `
+        <h3>${menuName}</h3>
+        <div class="menu-content"></div>
+        <button onclick="toggleMenu('${shortcutKey}')">Cerrar</button>
+        <button onclick="addDice(this)">Añadir Dado</button>
+        <button onclick="rollAllDice(this)">Lanzar Todos los Dados</button>
+        <button onclick="removeDice(this)">Eliminar Dado</button>
+    `;
+    
+    menu.setAttribute('data-menu-type', 'dados');
+    menu.style.top = '50px';
+    menu.style.left = '50px';
+    document.getElementById('game-area').appendChild(menu);
+    menus.push(menu);
+    
+    menuShortcuts[shortcutKey.toLowerCase()] = menu;
+    updateShortcutsList();
+    updateMenuSelector();
+    
+    interact(menu).draggable({
+        listeners: {
+            move(event) {
+                const target = event.target;
+                const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                target.style.transform = `translate(${x}px, ${y}px)`;
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+            }
+        }
+    });
+}
+
+function removeDice(button) {
+    const menu = button.closest('.custom-menu');
+    const menuContent = menu.querySelector('.menu-content');
+    const diceElements = menuContent.querySelectorAll('.dice');
+    
+    if (diceElements.length > 0) {
+        const lastDice = diceElements[diceElements.length - 1];
+        lastDice.remove();
+    } else {
+        alert('No hay dados para eliminar.');
+    }
+}
+
+function addDice(button) {
+    const menu = button.closest('.custom-menu');
+    const menuContent = menu.querySelector('.menu-content');
+    const diceTypes = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
+    
+    const diceType = prompt(`Elija el tipo de dado (${diceTypes.join(', ')}):`);
+    if (diceTypes.includes(diceType)) {
+        const dice = document.createElement('div');
+        dice.className = 'piece dice';
+        dice.setAttribute('data-dice-type', diceType);
+        dice.textContent = diceType;
+        dice.onclick = function(event) { rollDiceInMenu(this); };
+        
+        menuContent.appendChild(dice);
+    } else {
+        alert('Tipo de dado no válido.');
+    }
+}
+
+function rollDiceInMenu(dice) {
+    const diceType = dice.getAttribute('data-dice-type');
+    const max = parseInt(diceType.substring(1));
+    const result = Math.floor(Math.random() * max) + 1;
+    dice.textContent = result;
+    dice.setAttribute('data-last-roll', result);
+}
+
+function rollAllDice(button) {
+    const menu = button.closest('.custom-menu');
+    const menuContent = menu.querySelector('.menu-content');
+    const diceElements = menuContent.querySelectorAll('.dice');
+    
+    diceElements.forEach(dice => {
+        rollDiceInMenu(dice);
+    });
+}
+
+function deleteMenu() {
+    const selectedMenuIndex = document.getElementById('menu-selector').value;
+    if (selectedMenuIndex !== "") {
+        const menuToDelete = menus[selectedMenuIndex];
+        menuToDelete.remove();
+        menus.splice(selectedMenuIndex, 1);
+        delete menuShortcuts[Object.keys(menuShortcuts).find(key => menuShortcuts[key] === menuToDelete)];
+        updateMenuSelector();
+        updateShortcutsList();
+    } else {
+        alert("Por favor, seleccione un menú para eliminar.");
+    }
+}
+
+function updateCardBackside(button) {
+    const menu = button.closest('.custom-menu');
+    const backsideURL = prompt("Ingrese la URL de Dropbox para la imagen del reverso de las cartas:");
+    if (backsideURL) {
+        const directUrl = backsideURL.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '');
+        menu.setAttribute('data-backside-url', directUrl);
+        alert("Reverso de las cartas actualizado con éxito.");
+    }
+}
+
+function toggleAllCards(button) {
+    const menu = button.closest('.custom-menu');
+    const menuContent = menu.querySelector('.menu-content');
+    const cards = menuContent.querySelectorAll('.piece');
+    const backsideURL = menu.getAttribute('data-backside-url');
+    const currentState = menu.getAttribute('data-cards-face-down');
+    
+    if (!backsideURL) {
+        alert("Por favor, establezca primero el reverso de las cartas.");
+        return;
+    }
+
+    const newState = currentState === 'false' ? 'true' : 'false';
+    menu.setAttribute('data-cards-face-down', newState);
+
+    cards.forEach(card => {
+        if (newState === 'true') {
+            card.style.backgroundImage = `url(${backsideURL})`;
+            card.setAttribute('data-face-down', 'true');
+        } else {
+            const frontURL = card.getAttribute('data-url');
+            card.style.backgroundImage = `url(${frontURL})`;
+            card.setAttribute('data-face-down', 'false');
+        }
+    });
+
+    boardPieces.forEach(piece => {
+        if (piece.getAttribute('data-menu-id') === menu.id) {
+            if (newState === 'true') {
+                piece.style.backgroundImage = `url(${backsideURL})`;
+                piece.setAttribute('data-side', 'back');
+            } else {
+                const frontURL = piece.getAttribute('data-frontside-url');
+                piece.style.backgroundImage = `url(${frontURL})`;
+                piece.setAttribute('data-side', 'front');
+            }
+        }
+    });
+
+    button.textContent = newState === 'true' ? 'Mostrar todas boca arriba' : 'Mostrar todas boca abajo';
+}
+
+function uploadPieceByDropboxURL() {
+    const url = prompt("Ingrese la URL de Dropbox para la imagen de la ficha o carta:");
+    if (url) {
+        const pieceSize = document.getElementById('piece-size').value || 150;
+        const selectedMenuIndex = document.getElementById('menu-selector').value;
+        
+        if (selectedMenuIndex === "") {
+            alert("Por favor, seleccione un menú antes de agregar una ficha o carta.");
+            return;
+        }
+        
+        const selectedMenu = menus[selectedMenuIndex];
+        const menuType = selectedMenu.getAttribute('data-menu-type');
+        const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '');
+        
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        piece.style.backgroundImage = `url(${directUrl})`;
+        piece.style.width = `50px`;
+        piece.style.height = `50px`;
+        piece.setAttribute('data-size', pieceSize);
+        piece.setAttribute('data-url', directUrl);
+        
+        if (menuType === "cartas") {
+            const backsideURL = selectedMenu.getAttribute('data-backside-url');
+            if (backsideURL) {
+                piece.setAttribute('data-backside-url', backsideURL);
+            } else {
+                alert("Advertencia: No se ha establecido un reverso para las cartas en este menú.");
+            }
+        }
+        
+        piece.onclick = function(event) { addPieceToBoard(this, event); };
+        
+        const deleteButton = document.createElement('div');
+        deleteButton.className = 'delete-piece';
+        deleteButton.textContent = 'X';
+        deleteButton.onclick = function(event) {
+            event.stopPropagation();
+            deletePieceFromMenu(piece);
+        };
+        
+        piece.appendChild(deleteButton);
+        selectedMenu.querySelector('.menu-content').appendChild(piece);
+    }
+}
+
+function deletePieceFromMenu(piece) {
+    piece.remove();
+    const menuContent = piece.closest('.menu-content');
+    if (menuContent) {
+        const menu = menuContent.closest('.custom-menu');
+        const menuIndex = menus.indexOf(menu);
+        if (menuIndex !== -1) {
+            const updatedPieces = Array.from(menuContent.querySelectorAll('.piece'));
+            menus[menuIndex].pieces = updatedPieces;
+        }
+    }
+}
+
+function addPieceToBoard(menuPiece, event) {
+    if (menuPiece.classList.contains('dice')) {
+        rollDice(menuPiece, event);
+    } else {
+        const pieceSize = menuPiece.getAttribute('data-size');
+        const directUrl = menuPiece.getAttribute('data-url');
+        const menu = menuPiece.closest('.custom-menu');
+        const backsideUrl = menu.getAttribute('data-backside-url');
+        const boardPiece = document.createElement('div');
+        boardPiece.className = 'board-piece';
+
+        boardPiece.style.backgroundImage = `url(${directUrl})`;
+        
+        boardPiece.style.width = `${pieceSize}px`;
+        boardPiece.style.height = `${pieceSize}px`;
+        
+        const boardRect = gameBoard.getBoundingClientRect();
+        const x = (event.clientX - boardRect.left) / boardScale;
+        const y = (event.clientY - boardRect.top) / boardScale;
+        
+        boardPiece.style.left = `${x}px`;
+        boardPiece.style.top = `${y}px`;
+        boardPiece.style.zIndex = zIndexCounter++;
+        
+        boardPiece.setAttribute('data-frontside-url', directUrl);
+        boardPiece.setAttribute('data-backside-url', backsideUrl);
+        boardPiece.setAttribute('data-side', 'front');
+        boardPiece.setAttribute('data-menu-id', menu.id);
+        
+        gameBoard.appendChild(boardPiece);
+        boardPieces.push(boardPiece);
+
+        boardPiece.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showContextMenu(e, boardPiece);
+        });
+
+        boardPiece.addEventListener('click', function(e) {
+            if (!e.ctrlKey) {
+                clearSelection();
+            }
+            toggleSelection(boardPiece);
+        });
+
+        makePieceDraggable(boardPiece);
+    }
+}
+
+function makePieceDraggable(piece) {
+    let startX, startY;
+    
+    interact(piece).draggable({
+        inertia: false,
+        modifiers: [
+            interact.modifiers.restrictRect({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        autoScroll: true,
+        listeners: {
+            start(event) {
+                const rect = piece.getBoundingClientRect();
+                startX = event.clientX - rect.left;
+                startY = event.clientY - rect.top;
+            },
+            move(event) {
+                if (event.target.classList.contains('fixed')) {
+                    return;
+                }
+                
+                const target = event.target;
+                const boardRect = gameBoard.getBoundingClientRect();
+                
+                const x = (event.clientX - boardRect.left - startX) / boardScale;
+                const y = (event.clientY - boardRect.top - startY) / boardScale;
+
+                target.style.left = `${x}px`;
+                target.style.top = `${y}px`;
+                target.style.transform = 'none';
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+
+                target.style.zIndex = zIndexCounter++;
+            }
+        }
+    });
+}
+
+function showContextMenu(e, piece) {
+    e.preventDefault();
+    const contextMenu = document.getElementById('context-menu');
+    contextMenu.style.display = 'block';
+    contextMenu.style.left = `${e.clientX}px`;
+    contextMenu.style.top = `${e.clientY}px`;
+    selectedPiece = piece;
+}
+
+function flipCard(card) {
+    const currentSide = card.getAttribute('data-side');
+    const newSide = currentSide === 'front' ? 'back' : 'front';
+    const newUrl = card.getAttribute(`data-${newSide}side-url`);
+    if (newUrl) {
+        card.style.backgroundImage = `url(${newUrl})`;
+        card.setAttribute('data-side', newSide);
+    } else {
+        console.error('Card backside URL not set');
+    }
+}
+
+function flipCardIfPossible() {
+    if (selectedPiece && selectedPiece.hasAttribute('data-side')) {
+        flipCard(selectedPiece);
+    }
+    closeContextMenu();
+}
+
+function shuffleDeck() {
+    const selectedMenu = menus[document.getElementById('menu-selector').value];
+    if (selectedMenu && selectedMenu.getAttribute('data-menu-type') === 'cartas') {
+        const cards = Array.from(selectedMenu.querySelectorAll('.piece'));
+        for (let i = cards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cards[i], cards[j]] = [cards[j], cards[i]];
+        }
+        const menuContent = selectedMenu.querySelector('.menu-content');
+        cards.forEach(card => menuContent.appendChild(card));
+    }
+}
+
+function shuffleDeckIfPossible() {
+    const selectedMenu = menus[document.getElementById('menu-selector').value];
+    if (selectedMenu && selectedMenu.getAttribute('data-menu-type') === 'cartas') {
+        shuffleDeck();
+    }
+    closeContextMenu();
+}
+
+function fixPiece() {
+    if (selectedPiece) {
+        selectedPiece.classList.toggle('fixed');
+        if (selectedPiece.classList.contains('fixed')) {
+            selectedPiece.style.zIndex = '1';
+            interact(selectedPiece).unset();
+        } else {
+            selectedPiece.style.zIndex = zIndexCounter++;
+            makePieceDraggable(selectedPiece);
+        }
+    }
+    closeContextMenu();
+}
+
+function eliminatePiece() {
+    if (selectedPiece) {
+        selectedPiece.remove();
+        boardPieces = boardPieces.filter(piece => piece !== selectedPiece);
+    }
+    closeContextMenu();
+}
+
+function changeNumberOfPieces() {
+    if (selectedPiece) {
+        const number = prompt("Ingrese el número para la ficha:");
+        if (number !== null) {
+            selectedPiece.setAttribute('data-number', number);
+            updatePieceNumber(selectedPiece);
+        }
+    }
+    closeContextMenu();
+}
+
+function removeNumber() {
+    if (selectedPiece) {
+        selectedPiece.removeAttribute('data-number');
+        updatePieceNumber(selectedPiece);
+    }
+    closeContextMenu();
+}
+
+function changeNumberPosition() {
+    if (selectedPiece) {
+        const currentPosition = selectedPiece.getAttribute('data-number-position') || 'top-left';
+        const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'];
+        const nextPosition = positions[(positions.indexOf(currentPosition) + 1) % positions.length];
+        selectedPiece.setAttribute('data-number-position', nextPosition);
+        updatePieceNumber(selectedPiece);
+    }
+    closeContextMenu();
+}
+
+function updatePieceNumber(piece) {
+    let numberElement = piece.querySelector('.piece-number');
+    if (!numberElement) {
+        numberElement = document.createElement('div');
+        numberElement.className = 'piece-number';
+        numberElement.style.position = 'absolute';
+        numberElement.style.backgroundColor = 'white';
+        numberElement.style.padding = '2px 5px';
+        numberElement.style.borderRadius = '10px';
+        numberElement.style.fontSize = '12px';
+        piece.appendChild(numberElement);
+    }
+    
+    const number = piece.getAttribute('data-number');
+    const position = piece.getAttribute('data-number-position') || 'top-left';
+    
+    if (number) {
+        numberElement.textContent = number;
+        numberElement.style.display = 'block';
+        
+        switch (position) {
+            case 'top-left':
+                numberElement.style.top = '5px';
+                numberElement.style.left = '5px';
+                numberElement.style.right = 'auto';
+                numberElement.style.bottom = 'auto';
+                numberElement.style.transform = 'none';
+                break;
+            case 'top-right':
+                numberElement.style.top = '5px';
+                numberElement.style.right = '5px';
+                numberElement.style.left = 'auto';
+                numberElement.style.bottom = 'auto';
+                numberElement.style.transform = 'none';
+                break;
+            case 'bottom-left':
+                numberElement.style.bottom = '5px';
+                numberElement.style.left = '5px';
+                numberElement.style.top = 'auto';
+                numberElement.style.right = 'auto';
+                numberElement.style.transform = 'none';
+                break;
+            case 'bottom-right':
+                numberElement.style.bottom = '5px';
+                numberElement.style.right = '5px';
+                numberElement.style.top = 'auto';
+                numberElement.style.left = 'auto';
+                numberElement.style.transform = 'none';
+                break;
+            case 'center':
+                numberElement.style.top = '50%';
+                numberElement.style.left = '50%';
+                numberElement.style.right = 'auto';
+                numberElement.style.bottom = 'auto';
+                numberElement.style.transform = 'translate(-50%, -50%)';
+                break;
+        }
+    } else {
+        numberElement.style.display = 'none';
+    }
+}
+
+function closeContextMenu() {
+    document.getElementById('context-menu').style.display = 'none';
+    selectedPiece = null;
+}
+
+function closeMenu() {
+    const selectedMenuIndex = document.getElementById('menu-selector').value;
+    if (selectedMenuIndex !== "") {
+        menus[selectedMenuIndex].style.display = 'none';
+    } else {
+        alert("Por favor, seleccione un menú para cerrar.");
+    }
+}
+
+function saveGameToCode() {
+    const gameState = {
+        boardBackground: gameBoard.style.backgroundImage,
+        boardBackgroundColor: gameBoard.style.backgroundColor,
+        boardScale: boardScale,
+        boardPosition: {
+            x: gameBoard.style.left,
+            y: gameBoard.style.top
+        },
+        boardDimensions: {
+            width: gameBoard.style.width,
+            height: gameBoard.style.height
+        },
+        menus: menus.map(menu => ({
+            name: menu.querySelector('h3').textContent,
+            x: menu.getAttribute('data-x'),
+            y: menu.getAttribute('data-y'),
+            shortcutKey: Object.keys(menuShortcuts).find(key => menuShortcuts[key] === menu),
+            menuType: menu.getAttribute('data-menu-type'),
+            backsideUrl: menu.getAttribute('data-backside-url'),
+            cardsFaceDown: menu.getAttribute('data-cards-face-down'),
+            pieces: Array.from(menu.querySelectorAll('.piece')).map(piece => ({
+                url: piece.getAttribute('data-url'),
+                size: piece.getAttribute('data-size'),
+                faceDown: piece.getAttribute('data-face-down')
+            }))
+        })),
+        boardPieces: boardPieces.map(piece => ({
+            url: piece.style.backgroundImage.slice(5, -2),
+            x: piece.getAttribute('data-x'),
+            y: piece.getAttribute('data-y'),
+            width: piece.style.width,
+            height: piece.style.height,
+            fixed: piece.classList.contains('fixed'),
+            number: piece.getAttribute('data-number'),
+            numberPosition: piece.getAttribute('data-number-position') || 'top-left',
+            zIndex: piece.style.zIndex,
+            menuId: piece.getAttribute('data-menu-id'),
+            side: piece.getAttribute('data-side'),
+            frontsideUrl: piece.getAttribute('data-frontside-url'),
+            backsideUrl: piece.getAttribute('data-backside-url')
+        }))
+    };
+    const gameCode = btoa(JSON.stringify(gameState));
+    document.getElementById('game-code').value = gameCode;
+    alert("Partida guardada en el código. Cópielo y guárdelo en un lugar seguro.");
+}
+
+function loadGameFromCode() {
+    const gameCode = document.getElementById('game-code').value;
+    try {
+        const gameState = JSON.parse(atob(gameCode));
+        loadGame(gameState);
+    } catch (error) {
+        console.error('Error loading game:', error);
+        alert('Error al cargar la partida. Asegúrese de que el código es correcto.');
+    }
+}
+
+function loadGame(gameState) {
+    resetGame();
+    
+    gameBoard.style.backgroundImage = gameState.boardBackground;
+    gameBoard.style.backgroundColor = gameState.boardBackgroundColor;
+    boardScale = gameState.boardScale || 1;
+    gameBoard.style.transform = `scale(${boardScale})`;
+    gameBoard.style.left = gameState.boardPosition.x;
+    gameBoard.style.top = gameState.boardPosition.y;
+    gameBoard.style.width = gameState.boardDimensions.width;
+    gameBoard.style.height = gameState.boardDimensions.height;
+    
+    gameState.menus.forEach(menuData => {
+        const menu = document.createElement('div');
+        menu.className = 'custom-menu';
+        menu.id = 'menu-' + Date.now();
+        menu.innerHTML = `
+            <h3>${menuData.name}</h3>
+            <div class="menu-content"></div>
+            <button onclick="toggleMenu('${menuData.shortcutKey}')">Cerrar</button>
+        `;
+        if (menuData.menuType === 'cartas') {
+            menu.innerHTML += `
+                <button onclick="updateCardBackside(this)">Reverso de las cartas</button>
+                <button onclick="toggleAllCards(this)">Mostrar todas boca ${menuData.cardsFaceDown === 'true' ? 'arriba' : 'abajo'}</button>
+            `;
+        }
+        menu.style.position = 'absolute';
+        menu.style.transform = `translate(${menuData.x}px, ${menuData.y}px)`;
+        menu.setAttribute('data-x', menuData.x);
+        menu.setAttribute('data-y', menuData.y);
+        menu.setAttribute('data-menu-type', menuData.menuType);
+        menu.setAttribute('data-backside-url', menuData.backsideUrl);
+        menu.setAttribute('data-cards-face-down', menuData.cardsFaceDown);
+        document.getElementById('game-area').appendChild(menu);
+        menus.push(menu);
+        menuShortcuts[menuData.shortcutKey] = menu;
+
+        interact(menu).draggable({
+            listeners: {
+                move(event) {
+                    const target = event.target;
+                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                    target.style.transform = `translate(${x}px, ${y}px)`;
+                    target.setAttribute('data-x', x);
+                    target.setAttribute('data-y', y);
+                }
+            }
+        });
+
+        menuData.pieces.forEach(pieceData => {
+            const piece = document.createElement('div');
+            piece.className = 'piece';
+            piece.style.backgroundImage = `url(${pieceData.url})`;
+            piece.setAttribute('data-size', pieceData.size);
+            piece.setAttribute('data-url', pieceData.url);
+            piece.setAttribute('data-face-down', pieceData.faceDown);
+            piece.onclick = function(event) { addPieceToBoard(this, event); };
+            
+            const deleteButton = document.createElement('div');
+            deleteButton.className = 'delete-piece';
+            deleteButton.textContent = 'X';
+            deleteButton.onclick = function(event) {
+                event.stopPropagation();
+                deletePieceFromMenu(piece);
+            };
+            
+            piece.appendChild(deleteButton);
+            menu.querySelector('.menu-content').appendChild(piece);
+        });
+    });
+    
+    gameState.boardPieces.forEach(pieceData => {
+        const piece = document.createElement('div');
+        piece.className = 'board-piece';
+        piece.style.backgroundImage = `url(${pieceData.url})`;
+        piece.style.width = pieceData.width;
+        piece.style.height = pieceData.height;
+        piece.style.position = 'absolute';
+        piece.style.transform = `translate(${pieceData.x}px, ${pieceData.y}px)`;
+        piece.setAttribute('data-x', pieceData.x);
+        piece.setAttribute('data-y', pieceData.y);
+        piece.style.zIndex = pieceData.zIndex;
+        piece.setAttribute('data-menu-id', pieceData.menuId);
+        piece.setAttribute('data-side', pieceData.side);
+        piece.setAttribute('data-frontside-url', pieceData.frontsideUrl);
+        piece.setAttribute('data-backside-url', pieceData.backsideUrl);
+        if (pieceData.fixed) {
+            piece.classList.add('fixed');
+        }
+        
+        if (pieceData.number) {
+            piece.setAttribute('data-number', pieceData.number);
+            piece.setAttribute('data-number-position', pieceData.numberPosition);
+        }
+        
+        gameBoard.appendChild(piece);
+        boardPieces.push(piece);
+
+        piece.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showContextMenu(e, piece);
+        });
+
+        piece.addEventListener('click', function(e) {
+            if (!e.ctrlKey) {
+                clearSelection();
+            }
+            toggleSelection(piece);
+        });
+
+        makePieceDraggable(piece);
+        updatePieceNumber(piece);
+    });
+    
+    zIndexCounter = Math.max(...boardPieces.map(p => parseInt(p.style.zIndex) || 0)) + 1;
+    
+    updateShortcutsList();
+    updateMenuSelector();
+    alert("Partida cargada exitosamente!");
+}
+
+function resetGame() {
+    gameBoard.style.backgroundImage = '';
+    gameBoard.style.backgroundColor = '';
+    gameBoard.style.transform = 'scale(1)';
+    gameBoard.style.left = '0px';
+    gameBoard.style.top = '0px';
+    gameBoard.style.width = '2000px';
+    gameBoard.style.height = '2000px';
+    boardScale = 1;
+    boardPieces.forEach(piece => piece.remove());
+    boardPieces = [];
+    menus.forEach(menu => menu.remove());
+    menus = [];
+    menuShortcuts = {};
+    document.getElementById('menu-selector').innerHTML = '<option value="">Seleccionar Menú</option>';
+    document.getElementById('piece-size').value = 150;
+    zIndexCounter = 10;
+    updateShortcutsList();
+    updateMenuSelector();
+}
+
+function toggleSelection(piece) {
+    piece.classList.toggle('selected');
+}
+
+function clearSelection() {
+    boardPieces.forEach(piece => piece.classList.remove('selected'));
+}
+
+function deleteSelectedPieces() {
+    const selectedPieces = document.querySelectorAll('.board-piece.selected');
+    selectedPieces.forEach(piece => {
+        piece.remove();
+        boardPieces = boardPieces.filter(p => p !== piece);
+    });
+}
+
+function updateShortcutsList() {
+    const shortcutsList = document.getElementById('shortcut-keys');
+    shortcutsList.innerHTML = '';
+    for (const [key, menu] of Object.entries(menuShortcuts)) {
+        const li = document.createElement('li');
+        li.textContent = `${key.toUpperCase()}: ${menu.querySelector('h3').textContent}`;
+        shortcutsList.appendChild(li);
+    }
+}
+
+// Add keyboard event listener
+document.addEventListener('keydown', function(event) {
+    const key = event.key.toLowerCase();
+    if (menuShortcuts.hasOwnProperty(key)) {
+        toggleMenu(key);
+    }
+    if (event.key === 'Delete') {
+        deleteSelectedPieces();
+    }
+});
+
+// Close context menu when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('#context-menu')) {
+        closeContextMenu();
+    }
+});
+
+// Implement zoom functionality
+gameArea.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const delta = e.deltaY;
+    const zoomSpeed = 0.1;
+    
+    if (delta > 0) {
+        boardScale = Math.max(0.1, boardScale - zoomSpeed);
+    } else {
+        boardScale = Math.min(5, boardScale + zoomSpeed);
+    }
+    
+    gameBoard.style.transform = `scale(${boardScale})`;
+});
+
+// Implement board dragging
+gameBoard.addEventListener('mousedown', function(e) {
+    if (e.target === gameBoard || e.target.classList.contains('fixed')) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startBoardX = parseFloat(gameBoard.style.left) || 0;
+        startBoardY = parseFloat(gameBoard.style.top) || 0;
+    }
+});
+
+document.addEventListener('mousemove', function(e) {
+    if (isDragging) {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        gameBoard.style.left = `${startBoardX + dx}px`;
+        gameBoard.style.top = `${startBoardY + dy}px`;
+    }
+});
+
+document.addEventListener('mouseup', function() {
+    isDragging = false;
+});
+
+// Close modal when clicking on the close button or outside the modal
+const modal = document.getElementById('change-background-modal');
+const closeBtn = document.getElementsByClassName('close')[0];
+
+closeBtn.onclick = function() {
+    modal.style.display = 'none';
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateShortcutsList();
+});
+</script>
+</body></html>
